@@ -4,6 +4,9 @@
 
 **LearnEasy** is an AI-powered accessibility tool designed to make complex educational content more understandable for learners of all levels. Using state-of-the-art natural language processing models, LearnEasy transforms difficult text into simpler, more digestible formats while maintaining accuracy and meaning.
 
+<img width="1865" height="812" alt="image" src="https://github.com/user-attachments/assets/605784ee-7273-4167-bd2c-55ba619f8b38" />
+
+
 ### Key Features
 
 - 🎯 **Text Simplification** – Reduce reading level complexity while preserving meaning
