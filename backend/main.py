@@ -29,7 +29,7 @@ def root():
     return {"message": "LearnEasy backend is running"}
 
 
-# 1) TEXT TRANSFORMATIONS (simplify, summarize, etc.)
+# TEXT TRANSFORMATION (simplification, summarization, etc.)
 @app.post("/transform")
 def transform(request: TransformRequest):
     output = run_instruction(
@@ -40,7 +40,7 @@ def transform(request: TransformRequest):
     return {"result": output}
 
 
-# 2) DIAGRAM GENERATION (flowchart SVG)
+# DIAGRAM GENERATION (flowchart SVG)
 @app.post("/diagram")
 def diagram(request: DiagramRequest):
     steps = extract_steps(request.text)
@@ -50,7 +50,7 @@ def diagram(request: DiagramRequest):
     return {"svg": svg, "steps": steps}
 
 
-# 3) TEXT-TO-SPEECH
+# TEXT-TO-SPEECH
 @app.post("/tts")
 def tts(request: TTSRequest):
     audio_b64 = text_to_audio_base64(request.text, lang=request.lang)

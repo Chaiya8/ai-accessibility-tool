@@ -2,9 +2,14 @@ import streamlit as st
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 from gtts import gTTS
 from io import BytesIO
-import base64
 import graphviz
+import google.generativeai as genai
 
+# ── Gemini setup ──────────────────────────────────────────────────────────────
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+gemini = genai.GenerativeModel("gemini-2.5-flash")
+
+# ── Flan-T5 setup (for summarize, steps, diagram) ─────────────────────────────
 @st.cache_resource
 def load_model():
     model_name = "google/flan-t5-small"
@@ -15,14 +20,18 @@ def load_model():
 tokenizer, model = load_model()
 
 
-# CORE INSTRUCTION ENGINE
+# ── Flan-T5 generate helper ───────────────────────────────────────────────────
+def flan_generate(prompt: str) -> str:
+    inputs = tokenizer(prompt, return_tensors="pt", truncation=True)
+    outputs = model.generate(**inputs, max_length=250, temperature=0.6, num_beams=4)
+    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+
+# ── CORE INSTRUCTION ENGINE ───────────────────────────────────────────────────
 def run_instruction(text: str, mode: str, level: str = "6th grade") -> str:
-    """
-    Unified function: simplify / summarize / explain / examples / steps.
-    """
 
     if mode == "simplify":
-
+        # Gemini handles simplify — actually changes the text
         grade_rules = {
             "3rd grade": (
                 "Use ONLY simple everyday words. "
@@ -58,70 +67,47 @@ def run_instruction(text: str, mode: str, level: str = "6th grade") -> str:
                 "Use extremely simple words. "
                 "Use short sentences (6–8 words). "
                 "Use friendly, gentle examples."
-            )
+            ),
         }
-
         constraints = grade_rules.get(level, "")
-
         prompt = (
-            f"Simplify the text using these rules:\n"
-            f"{constraints}\n\n"
+            f"Rewrite the following text for a {level} reading level.\n"
+            f"Rules: {constraints}\n\n"
             f"Text:\n{text}\n\n"
-            f"Simplified ({level} version):"
+            f"Rewritten version:"
         )
+        response = gemini.generate_content(prompt)
+        return response.text.strip()
 
+    # Everything else still uses Flan-T5
     elif mode == "summarize":
-        prompt = f"Write a short, clear summary for a beginner:\n\n{text}"
-
+        return flan_generate(f"Write a short, clear summary for a beginner:\n\n{text}")
     elif mode == "explain10":
-        prompt = f"Explain the following in simple terms as if teaching a 10-year-old:\n\n{text}"
-
-  
+        return flan_generate(f"Explain the following in simple terms as if teaching a 10-year-old:\n\n{text}")
     elif mode == "example":
-        prompt = f"Give a simple real-life example that helps explain this topic:\n\n{text}"
-
-
+        return flan_generate(f"Give a simple real-life example that helps explain this topic:\n\n{text}")
     elif mode == "steps":
-        prompt = (
-            "Break the following idea into 5–7 simple steps that a middle school student can follow:\n\n"
-            f"{text}"
+        return flan_generate(
+            f"Break the following idea into 5–7 simple steps that a middle school student can follow:\n\n{text}"
         )
-
     else:
-        prompt = text
-
-    inputs = tokenizer(prompt, return_tensors="pt", truncation=True)
-
-    outputs = model.generate(
-        **inputs,
-        max_length=250,
-        temperature=0.6,
-        num_beams=4,
-    )
-
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return flan_generate(text)
 
 
-# DIAGRAM (FLOWCHART)
+# ── DIAGRAM ───────────────────────────────────────────────────────────────────
 def extract_steps(text: str) -> list[str]:
-    """
-    Use 'steps' mode to turn text into 4–7 simple steps.
-    """
     steps_text = run_instruction(text, mode="steps", level="8th grade")
     raw_lines = steps_text.splitlines()
-
     steps = []
     for line in raw_lines:
         line = line.strip()
         if not line:
             continue
-        # remove numbering like "1. something"
         if line[0].isdigit() and "." in line:
             line = line.split(".", 1)[1].strip()
         if line.startswith("- "):
             line = line[2:].strip()
         steps.append(line)
-
     return steps[:7]
 
 
@@ -130,20 +116,15 @@ def build_flowchart(steps: list[str]) -> graphviz.Digraph:
     dot.attr(rankdir="TB", fontsize="12", nodesep="0.5", ranksep="0.6")
     dot.attr("node", shape="box", style="rounded,filled", fillcolor="#111827",
              fontcolor="white", color="#00e6c3", penwidth="1.5")
-
     for i, step in enumerate(steps):
         dot.node(str(i), step)
-
     for i in range(len(steps) - 1):
         dot.edge(str(i), str(i + 1), color="#00e6c3")
-
     return dot
 
-# TEXT-TO-SPEECH VIA gTTS
+
+# ── TEXT-TO-SPEECH ────────────────────────────────────────────────────────────
 def text_to_audio_bytes(text: str) -> BytesIO:
-    """
-    Convert text to speech and return a BytesIO MP3 stream.
-    """
     tts = gTTS(text=text, lang="en")
     fp = BytesIO()
     tts.write_to_fp(fp)
@@ -151,8 +132,7 @@ def text_to_audio_bytes(text: str) -> BytesIO:
     return fp
 
 
-
-# STREAMLIT UI
+# ── STREAMLIT UI ──────────────────────────────────────────────────────────────
 st.set_page_config(page_title="LearnEasy – Cloud", layout="wide")
 
 st.markdown(
@@ -167,14 +147,12 @@ st.markdown(
 text = st.text_area("Paste your text here:", height=200)
 
 col1, col2 = st.columns(2)
-
 with col1:
     mode = st.selectbox(
         "Choose transformation:",
         ["simplify", "summarize", "explain10", "example", "steps"],
         index=0,
     )
-
 with col2:
     level = st.selectbox(
         "Reading level (for simplify):",
@@ -203,14 +181,12 @@ if st.session_state["last_output"]:
 
     tcol1, tcol2 = st.columns(2)
 
-    # Text-to-Speech
     with tcol1:
         if st.button("🔊 Read Aloud"):
             with st.spinner("Generating audio..."):
                 audio_fp = text_to_audio_bytes(st.session_state["last_output"])
             st.audio(audio_fp, format="audio/mp3")
 
-    # Diagram
     with tcol2:
         if st.button("📊 Generate Diagram"):
             with st.spinner("Building diagram..."):

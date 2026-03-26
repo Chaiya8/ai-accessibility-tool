@@ -3,14 +3,9 @@
 from graphviz import Digraph
 from .simplify import run_instruction  
 def extract_steps(text: str) -> list[str]:
-    """
-    turn text into 4–7 simple steps.
-    Then split into a clean list of step strings.
-    """
 
+    # Use the existing instruction system to get steps from the text.
     steps_text = run_instruction(text, mode="steps", level="8th grade")
-
-
     raw_lines = steps_text.splitlines()
 
     steps = []
@@ -28,10 +23,7 @@ def extract_steps(text: str) -> list[str]:
 
 
 def create_diagram_svg(steps: list[str]) -> str:
-    """
-    Turn a list of step strings into a simple top-to-bottom flowchart.
-    Returns SVG as text.
-    """
+    #Turn a list of step strings into a simple top-to-bottom flowchart.
     dot = Digraph()
     dot.attr(rankdir="TB", fontsize="12", nodesep="0.5", ranksep="0.6")
     dot.attr("node", shape="box", style="rounded,filled", fillcolor="#111827",
