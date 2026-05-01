@@ -4,7 +4,7 @@ import google.generativeai as genai
 import streamlit as st
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 
-# ── Model setup ───────────────────────────────────────────────────────────────
+
 model_name = "google/flan-t5-base"
 
 print("Loading model...")
@@ -12,7 +12,7 @@ tokenizer = T5Tokenizer.from_pretrained(model_name)
 model = T5ForConditionalGeneration.from_pretrained(model_name)
 
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-gemini = genai.GenerativeModel("gemini-1.5-flash")
+gemini = genai.GenerativeModel("gemini-2.5-flash")
 
 # ── File structure setup (matches diagram) ────────────────────────────────────
 os.makedirs("project/inputs", exist_ok=True)
@@ -68,7 +68,9 @@ def simplify_agent(text: str, level: str) -> str:
     return generate(prompt)
 
 
-# ── Manager Agent (Gemini) ────────────────────────────────────────────────────
+
+
+
 def manager_evaluate(original: str, simplified: str, level: str) -> dict:
     """
     Manager is Gemini — reviews the Flan-T5 output and decides to approve or retry.
@@ -97,6 +99,7 @@ def manager_evaluate(original: str, simplified: str, level: str) -> dict:
     if "approve" in raw.lower():
         return {"decision": "approve"}
     return {"decision": "retry", "feedback": raw}
+
 
 
 # ── Main pipeline: Manager loop ───────────────────────────────────────────────

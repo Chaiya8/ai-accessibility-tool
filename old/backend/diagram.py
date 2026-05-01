@@ -23,7 +23,6 @@ def extract_steps(text: str) -> list[str]:
 
 
 def create_diagram_svg(steps: list[str]) -> str:
-    #Turn a list of step strings into a simple top-to-bottom flowchart.
     dot = Digraph()
     dot.attr(rankdir="TB", fontsize="12", nodesep="0.5", ranksep="0.6")
     dot.attr("node", shape="box", style="rounded,filled", fillcolor="#111827",

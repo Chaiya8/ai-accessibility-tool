@@ -4,14 +4,14 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from .simplify import run_instruction
 from .diagram import extract_steps, create_diagram_svg
-from .texttspeech import text_to_audio_base64
+from ..old.texttspeech import text_to_audio_base64
 
 app = FastAPI()
 
 
 class TransformRequest(BaseModel):
     text: str
-    mode: str = "simplify"    # "simplify", "summarize", "explain10", "example", "steps"
+    mode: str = "simplify"    
     level: str = "6th grade"  
 
 

@@ -79,6 +79,8 @@ def run_instruction(text: str, mode: str, level: str = "6th grade") -> str:
         response = gemini.generate_content(prompt)
         return response.text.strip()
 
+
+
     # Everything else still uses Flan-T5
     elif mode == "summarize":
         return flan_generate(f"Write a short, clear summary for a beginner:\n\n{text}")
